@@ -35,7 +35,7 @@ const data = {
     {
       "titre": "Notre top des films à absolument voir !",
       "tags": [
-        "straming",
+        "streaming",
         "netflix"
       ] 
     },

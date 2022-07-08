@@ -31,13 +31,19 @@ const allKeywords = keywordsCategories.reduce((prevKeywords, category) => [
 // Otherwise, it means that we added a new keyword, or we re-checked a checkbox. So we add the
 // keyword in the keywords list to take in account.
 const toggleKeyword = (keyword) => {
+    keyword = cleanedKeyword(keyword);
+
     if (currentKeywords.includes(keyword)) {
         currentKeywords = currentKeywords.filter((currentKeyword) => currentKeyword !== keyword);
     } else {
         currentKeywords.push(keyword);
     }
 
-    reloadArticles();
+    console.log("CP toggleKeyword => currentKeywords = ");
+    console.log(currentKeywords);
+    reloadArticles(currentKeywords);
+    
+    
 };
 
 // The first argument is the keyword's label, what will be visible by the user.
@@ -57,8 +63,9 @@ const addNewKeyword = (label, keyword) => {
         return;
     }
 
-    keywords.push(keyword);
-    currentKeywords.push(keyword);
+    keywords.push(cleanedKeyword(keyword));
+    currentKeywords.push(cleanedKeyword(keyword));
+
 
     document.querySelector('.keywordsList').innerHTML += `
         <div>
@@ -67,16 +74,35 @@ const addNewKeyword = (label, keyword) => {
         </div>
     `;
 
-    reloadArticles();
+
+    // reloadArticles(); ORIGINAL
+    reloadArticles(keywords);
     resetKeywordsUl();
 };
 
 // We reload the articles depends of the currentKeywords
 // TODO: Modify this function to display only articles that contain at least one of the selected keywords.
-const reloadArticles = () => {
+const reloadArticles = (keywords) => {
+    // vérif
+    console.log("CP reloadArticles, keywords (en paramètres) = ");
+    console.log(keywords);
+
     document.querySelector('.articlesList').innerHTML = '';
-    
-    const articlesToShow = data.articles;
+
+    // const articlesToShow = data.articles; ORIGINAL, AJOUT EN DESSOUS
+
+    const articlesToShow = [];
+
+
+    keywords.forEach(keyword => {
+            let matchingArticles = data.articles.filter(article => article.tags.includes(keyword));
+            for (let i = 0 ; i < matchingArticles.length ; i++) {
+                articlesToShow.push(matchingArticles[i]);
+            }
+    });
+
+
+
     articlesToShow.forEach((article) => {
         document.querySelector('.articlesList').innerHTML += `
             <article>
@@ -84,6 +110,7 @@ const reloadArticles = () => {
             </article>
         `;
     });
+
 };
 
 // We empty the content from the <ul> under the text input
@@ -108,7 +135,9 @@ const resetInput = () => {
 // Clean a keyword to lowercase and without special characters
 // TODO: Make the cleaning
 const cleanedKeyword = (keyword) => {
-    const cleanedKeyword = keyword;
+    myRegexp = /[^\w]+/g;
+    keyword = keyword.replace(myRegexp, '');
+    const cleanedKeyword = keyword.toLowerCase();
 
     return cleanedKeyword;
 };
@@ -117,18 +146,57 @@ const cleanedKeyword = (keyword) => {
 // into the form (starting autocompletion at 3 letters).
 // TODO: We also show all the words from the same category than this word.
 // TODO: We show in first the keyword containing a part of the word inserted.
+
 // TODO: If a keyword is already in the list of presents hashtags (checkbox list), we don't show it.
 const showKeywordsList = (value) => {
+
+    value = cleanedKeyword(value);
+    // let firstValue;
+
     // Starting at 3 letters inserted in the form, we do something
     if (value.length >= 3) {
         const keyWordUl = document.querySelector(".inputKeywordsHandle ul");
         resetKeywordsUl();
         
-        // This will allow you to add a new element in the list under the text input
-        // On click, we add the keyword, like so:
-        // keyWordUl.innerHTML += `
-        //    <li onclick="addNewKeyword(`${keyword}`, `${cleanedKeyword(keyword)}`)">${keyword}</li>
-        // `;
+        let matchedKeywords = [];
+        // Recherche du (ou des) mot-clé qui contient la valeur saisie
+        allKeywords.forEach(keyword => {
+            keyword = keyword.toLowerCase();
+            if (keyword.includes(value.substring(0,3))) {
+                matchedKeywords.push(keyword);
+            }
+        });
+        console.log("LOG de matchedKeywords = ");
+        console.log(matchedKeywords);
+
+        // Recherche des catégories qui contiennent ce (ou ces) mots-clés
+        let matchedCategories = [];
+        matchedKeywords.forEach(matchedKeyword => {
+            keywordsCategories.forEach(category => {
+                category.keywords.forEach(keyword => {
+                    if (keyword.toLowerCase() === matchedKeyword) {
+                        matchedCategories.push(category);
+                    }
+                });
+            });
+        });
+
+        console.log("LOG de matchedCategories = ");
+        console.log(matchedCategories);
+
+        // Affichage de tous les mots-clés en dessous de la zone de recherche, à commencer par ceux qui correspondent à la saisie user.
+        for(let i = 0 ; i < matchedKeywords.length ; i++ ) {
+            keyWordUl.innerHTML += `<li onclick="addNewKeyword('${matchedKeywords[i]}', '${matchedKeywords[i]}')">${matchedKeywords[i]}</li>`;
+        }
+        for(let i = 0 ; i < matchedCategories.length ; i++ ) {
+            for(let j = 0 ; j < matchedCategories[i].keywords.length ; j++) {
+                if (matchedKeywords.includes(matchedCategories[i].keywords[j].toLowerCase()) === false) {
+                    keyWordUl.innerHTML += `<li onclick="addNewKeyword('${matchedCategories[i].keywords[j]}', '${matchedCategories[i].keywords[j]}')">${matchedCategories[i].keywords[j]}</li>`;
+                }
+            }
+        }
+
+
     }
 };
 
